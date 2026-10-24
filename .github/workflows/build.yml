@@ -106,13 +106,13 @@ jobs:
           echo "KEY_ALIAS=upload" >> "$GITHUB_ENV"
 
       - name: Build Release APK
-        run: ./gradlew assembleRelease -x lint -x lintVitalRelease --no-daemon --no-configuration-cache --stacktrace
+        run: ./gradlew assembleRelease --no-daemon --no-configuration-cache --stacktrace
 
       - name: Build Release AAB (Google Play Bundle)
-        run: ./gradlew bundleRelease -x lint -x lintVitalRelease --no-daemon --no-configuration-cache --stacktrace
+        run: ./gradlew bundleRelease --no-daemon --no-configuration-cache --stacktrace
 
       - name: Build Debug APK (Optional for Quick Testing)
-        run: ./gradlew assembleDebug -x lint --no-daemon --no-configuration-cache --stacktrace
+        run: ./gradlew assembleDebug --no-daemon --no-configuration-cache --stacktrace
 
       - name: Upload Release APK
         uses: actions/upload-artifact@v4
