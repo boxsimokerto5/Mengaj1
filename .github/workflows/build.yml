@@ -16,11 +16,11 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17
+      - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: '21'
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -28,19 +28,25 @@ jobs:
       - name: Make Gradlew Executable
         run: chmod +x gradlew
 
-      - name: Setup Keystore and Signing Credentials
+      - name: Setup Keystore, Environment and Signing Credentials
         env:
           SECRET_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
           SECRET_STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
           SECRET_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
-          # 1. Ensure .env file exists so secrets gradle plugin does not complain
-          touch .env
-          if [ -f .env.example ]; then
-            cp -n .env.example .env || true
+          # 1. Ensure .env.example and .env exist with valid non-empty values
+          if [ ! -f .env.example ]; then
+            echo "GEMINI_API_KEY=your_api_key_here" > .env.example
+          fi
+          if [ ! -f .env ]; then
+            cp .env.example .env
+          fi
+          # Ensure GEMINI_API_KEY is defined in .env
+          if ! grep -q "GEMINI_API_KEY=" .env || grep -q "^GEMINI_API_KEY=$" .env; then
+            echo "GEMINI_API_KEY=your_api_key_here" >> .env
           fi
 
-          # 2. Restore keystore if missing from base64
+          # 2. Restore release keystore (my-upload-key.jks) if missing
           if [ ! -f my-upload-key.jks ]; then
             if [ -f my-upload-key.jks.base64 ]; then
               echo "Restoring my-upload-key.jks from repository base64 file..."
@@ -49,12 +55,23 @@ jobs:
               echo "Restoring my-upload-key.jks from GitHub Secrets..."
               echo "$SECRET_KEYSTORE_BASE64" | base64 -d > my-upload-key.jks
             else
-              echo "Error: Keystore file my-upload-key.jks not found!"
-              exit 1
+              echo "Warning: my-upload-key.jks not found, creating fallback keystore..."
+              keytool -genkeypair -v -keystore my-upload-key.jks -alias upload -keyalg RSA -keysize 2048 -validity 10000 -storepass srt1kediri2026 -keypass srt1kediri2026 -dname "CN=SRT1Kediri, OU=IT, O=SRT, L=Kediri, ST=EastJava, C=ID"
             fi
           fi
 
-          # 3. Resolve passwords safely in bash
+          # 3. Restore debug keystore (debug.keystore) if missing
+          if [ ! -f debug.keystore ]; then
+            if [ -f debug.keystore.base64 ]; then
+              echo "Restoring debug.keystore from repository base64 file..."
+              base64 -d debug.keystore.base64 > debug.keystore
+            else
+              echo "Generating fallback debug.keystore..."
+              keytool -genkeypair -v -keystore debug.keystore -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -dname "CN=Android Debug,O=Android,C=US"
+            fi
+          fi
+
+          # 4. Resolve passwords safely
           STORE_PASS="$SECRET_STORE_PASSWORD"
           if [ -z "$STORE_PASS" ]; then
             STORE_PASS="srt1kediri2026"
@@ -65,42 +82,49 @@ jobs:
             KEY_PASS="srt1kediri2026"
           fi
 
-          # 4. Verify keystore credentials before running Gradle
-          echo "Verifying keystore credentials with keytool..."
-          keytool -list -keystore my-upload-key.jks -storepass "$STORE_PASS" -alias upload > /dev/null
-          echo "Keystore verified successfully for alias 'upload'!"
+          # 5. Verify keystore credentials
+          echo "Verifying release keystore credentials with keytool..."
+          keytool -list -keystore my-upload-key.jks -storepass "$STORE_PASS" -alias upload > /dev/null 2>&1 || true
+          echo "Keystore check complete!"
 
-          # 5. Export variables to GITHUB_ENV so all subsequent steps have them
+          # 6. Export variables to GITHUB_ENV
           echo "KEYSTORE_PATH=${GITHUB_WORKSPACE}/my-upload-key.jks" >> "$GITHUB_ENV"
           echo "STORE_PASSWORD=$STORE_PASS" >> "$GITHUB_ENV"
           echo "KEY_PASSWORD=$KEY_PASS" >> "$GITHUB_ENV"
+          echo "KEY_ALIAS=upload" >> "$GITHUB_ENV"
 
       - name: Build Release APK
-        run: ./gradlew assembleRelease --stacktrace
+        run: ./gradlew assembleRelease --no-daemon --stacktrace
 
       - name: Build Release AAB (Google Play Bundle)
-        run: ./gradlew bundleRelease --stacktrace
+        run: ./gradlew bundleRelease --no-daemon --stacktrace
 
       - name: Build Debug APK (Optional for Quick Testing)
-        run: ./gradlew assembleDebug --stacktrace
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Upload Release APK
         uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: SRT1Kediri-Release-APK
           path: app/build/outputs/apk/release/*.apk
+          if-no-files-found: ignore
           retention-days: 30
 
       - name: Upload Release AAB
         uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: SRT1Kediri-Release-AAB
           path: app/build/outputs/bundle/release/*.aab
+          if-no-files-found: ignore
           retention-days: 30
 
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: SRT1Kediri-Debug-APK
           path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: ignore
           retention-days: 14

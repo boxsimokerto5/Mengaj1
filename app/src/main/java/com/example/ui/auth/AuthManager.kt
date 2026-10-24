@@ -36,7 +36,10 @@ object AuthManager {
         }
 
         val clientId = try {
-            context.getString(R.string.default_web_client_id)
+            context.getString(R.string.default_web_client_id).takeIf { it.isNotBlank() } ?: run {
+                onUnauthenticated()
+                return
+            }
         } catch (e: Exception) {
             onUnauthenticated()
             return
@@ -79,7 +82,10 @@ object AuthManager {
         onAuthCancelled: () -> Unit = {}
     ) {
         val clientId = try {
-            context.getString(R.string.default_web_client_id)
+            context.getString(R.string.default_web_client_id).takeIf { it.isNotBlank() } ?: run {
+                onAuthError("Konfigurasi Google Sign-In belum tersedia (default_web_client_id belum disetel)")
+                return
+            }
         } catch (e: Exception) {
             onAuthError("Konfigurasi Google Sign-In belum tersedia (default_web_client_id tidak ditemukan)")
             return
