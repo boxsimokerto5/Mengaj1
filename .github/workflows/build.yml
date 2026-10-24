@@ -28,34 +28,53 @@ jobs:
       - name: Make Gradlew Executable
         run: chmod +x gradlew
 
-      - name: Restore Permanent Release Keystore
+      - name: Setup Keystore and Signing Credentials
         run: |
-          if [ -f my-upload-key.jks ]; then
-            echo "Keystore my-upload-key.jks already present"
-          elif [ -f my-upload-key.jks.base64 ]; then
-            echo "Restoring my-upload-key.jks from base64"
-            base64 -d my-upload-key.jks.base64 > my-upload-key.jks
-          elif [ -n "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" ]; then
-            echo "Restoring my-upload-key.jks from GitHub Secrets"
-            echo "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" | base64 -d > my-upload-key.jks
-          else
-            echo "Error: Release keystore not found"
-            exit 1
+          # 1. Ensure .env file exists so secrets gradle plugin does not complain
+          touch .env
+          if [ -f .env.example ]; then
+            cp -n .env.example .env || true
           fi
-          ls -la my-upload-key.jks
+
+          # 2. Restore keystore if missing from base64
+          if [ ! -f my-upload-key.jks ]; then
+            if [ -f my-upload-key.jks.base64 ]; then
+              echo "Restoring my-upload-key.jks from repository base64 file..."
+              base64 -d my-upload-key.jks.base64 > my-upload-key.jks
+            elif [ -n "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" ]; then
+              echo "Restoring my-upload-key.jks from GitHub Secrets..."
+              echo "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" | base64 -d > my-upload-key.jks
+            else
+              echo "Error: Keystore file my-upload-key.jks not found!"
+              exit 1
+            fi
+          fi
+
+          # 3. Resolve passwords safely in bash (avoids GitHub Actions ${{ a || b }} boolean evaluation)
+          STORE_PASS="${{ secrets.STORE_PASSWORD }}"
+          if [ -z "$STORE_PASS" ]; then
+            STORE_PASS="srt1kediri2026"
+          fi
+
+          KEY_PASS="${{ secrets.KEY_PASSWORD }}"
+          if [ -z "$KEY_PASS" ]; then
+            KEY_PASS="srt1kediri2026"
+          fi
+
+          # 4. Verify keystore credentials before running Gradle
+          echo "Verifying keystore credentials with keytool..."
+          keytool -list -keystore my-upload-key.jks -storepass "$STORE_PASS" -alias upload > /dev/null
+          echo "Keystore verified successfully for alias 'upload'!"
+
+          # 5. Export variables to GITHUB_ENV so all subsequent steps have them
+          echo "KEYSTORE_PATH=${{ github.workspace }}/my-upload-key.jks" >> $GITHUB_ENV
+          echo "STORE_PASSWORD=$STORE_PASS" >> $GITHUB_ENV
+          echo "KEY_PASSWORD=$KEY_PASS" >> $GITHUB_ENV
 
       - name: Build Release APK
-        env:
-          KEYSTORE_PATH: ${{ github.workspace }}/my-upload-key.jks
-          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD || 'srt1kediri2026' }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD || 'srt1kediri2026' }}
         run: ./gradlew assembleRelease --stacktrace
 
       - name: Build Release AAB (Google Play Bundle)
-        env:
-          KEYSTORE_PATH: ${{ github.workspace }}/my-upload-key.jks
-          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD || 'srt1kediri2026' }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD || 'srt1kediri2026' }}
         run: ./gradlew bundleRelease --stacktrace
 
       - name: Build Debug APK (Optional for Quick Testing)
