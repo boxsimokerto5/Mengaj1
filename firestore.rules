@@ -1,0 +1,94 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidStudent(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+             data.currentType in ['IQRO', 'QURAN'] &&
+             data.currentLevel is int && data.currentLevel >= 1 && data.currentLevel <= 30 &&
+             data.currentPage is int && data.currentPage >= 1 && data.currentPage <= 1000 &&
+             (!('gender' in data) || data.gender in ['Laki-laki', 'Perempuan']) &&
+             (!('roomOrClass' in data) || (data.roomOrClass is string && data.roomOrClass.size() <= 100)) &&
+             (!('notes' in data) || (data.notes is string && data.notes.size() <= 500)) &&
+             (!('updatedAt' in data) || (data.updatedAt is timestamp && data.updatedAt <= request.time));
+    }
+
+    function isValidRecord(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.studentId is string && data.studentId.size() > 0 && data.studentId.size() <= 128 &&
+             (!('studentName' in data) || (data.studentName is string && data.studentName.size() <= 100)) &&
+             data.type in ['IQRO', 'QURAN'] &&
+             data.level is int && data.level >= 1 && data.level <= 30 &&
+             data.page is int && data.page >= 1 && data.page <= 1000 &&
+             data.status in ['LANCAR', 'KURANG_LANCAR', 'BELUM_LANCAR'] &&
+             data.date is string && data.date.size() >= 8 && data.date.size() <= 20 &&
+             (!('surahName' in data) || (data.surahName is string && data.surahName.size() <= 100)) &&
+             (!('verse' in data) || (data.verse is string && data.verse.size() <= 50)) &&
+             (!('notes' in data) || (data.notes is string && data.notes.size() <= 500)) &&
+             (!('teacherName' in data) || (data.teacherName is string && data.teacherName.size() <= 100)) &&
+             (!('updatedAt' in data) || (data.updatedAt is timestamp && data.updatedAt <= request.time));
+    }
+
+    // Per-user subcollections for strict multi-user tenancy and privacy
+    match /users/{userId}/students/{studentId} {
+      allow get, list: if isSignedIn() && request.auth.uid == userId;
+
+      allow create: if isSignedIn() &&
+                       request.auth.uid == userId &&
+                       isValidId(studentId) &&
+                       incoming().createdAt is timestamp &&
+                       incoming().createdAt <= request.time &&
+                       isValidStudent(incoming());
+
+      allow update: if isSignedIn() &&
+                       request.auth.uid == userId &&
+                       isValidId(studentId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       isValidStudent(incoming());
+
+      allow delete: if isSignedIn() && request.auth.uid == userId && isValidId(studentId);
+    }
+
+    match /users/{userId}/records/{recordId} {
+      allow get, list: if isSignedIn() && request.auth.uid == userId;
+
+      allow create: if isSignedIn() &&
+                       request.auth.uid == userId &&
+                       isValidId(recordId) &&
+                       incoming().createdAt is timestamp &&
+                       incoming().createdAt <= request.time &&
+                       isValidRecord(incoming());
+
+      allow update: if isSignedIn() &&
+                       request.auth.uid == userId &&
+                       isValidId(recordId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       isValidRecord(incoming());
+
+      allow delete: if isSignedIn() && request.auth.uid == userId && isValidId(recordId);
+    }
+  }
+}

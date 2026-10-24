@@ -1,0 +1,6 @@
+{
+  "name": "SRT 1 Kediri Mengaji",
+  "description": "Aplikasi pencatatan mengaji Iqro dan Al-Quran untuk anak asuh Sekolah Rakyat Terintegrasi (SRT) 1 Kabupaten Kediri.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

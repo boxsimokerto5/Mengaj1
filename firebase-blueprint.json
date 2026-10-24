@@ -1,0 +1,56 @@
+{
+  "entities": {
+    "Student": {
+      "title": "Student",
+      "description": "Data anak asuh / santri Sekolah Rakyat Terintegrasi 1 Kabupaten Kediri",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "gender": { "type": "string", "enum": ["Laki-laki", "Perempuan"] },
+        "roomOrClass": { "type": "string" },
+        "currentType": { "type": "string", "enum": ["IQRO", "QURAN"] },
+        "currentLevel": { "type": "integer" },
+        "currentPage": { "type": "integer" },
+        "notes": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "name", "currentType", "currentLevel", "currentPage", "createdAt"]
+    },
+    "NgajiRecord": {
+      "title": "NgajiRecord",
+      "description": "Catatan evaluasi harian bacaan Iqro / Al-Qur'an santri",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "studentId": { "type": "string" },
+        "studentName": { "type": "string" },
+        "type": { "type": "string", "enum": ["IQRO", "QURAN"] },
+        "level": { "type": "integer" },
+        "page": { "type": "integer" },
+        "surahName": { "type": "string" },
+        "verse": { "type": "string" },
+        "status": { "type": "string", "enum": ["LANCAR", "KURANG_LANCAR", "BELUM_LANCAR"] },
+        "notes": { "type": "string" },
+        "teacherName": { "type": "string" },
+        "date": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "studentId", "type", "level", "page", "status", "date", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/students/{studentId}": {
+      "schema": "Student",
+      "description": "Daftar santri/anak asuh SRT 1 Kediri yang dikelola oleh ustadz"
+    },
+    "/users/{userId}/records/{recordId}": {
+      "schema": "NgajiRecord",
+      "description": "Riwayat dan log pencatatan bacaan mengaji santri SRT 1 Kediri"
+    }
+  }
+}
