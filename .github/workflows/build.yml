@@ -47,67 +47,13 @@ jobs:
 
           # 2. Ensure google-services.json exists
           if [ ! -f app/google-services.json ]; then
-            echo "Generating app/google-services.json..."
-            cat << 'EOF' > app/google-services.json
-{
-  "project_info": {
-    "project_number": "826536457643",
-    "project_id": "gen-lang-client-0143825981",
-    "storage_bucket": "gen-lang-client-0143825981.firebasestorage.app"
-  },
-  "client": [
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:826536457643:android:2c6266e58481a285f94eee",
-        "android_client_info": {
-          "package_name": "com.mengaji.gecckocreator"
-        }
-      },
-      "oauth_client": [
-        {
-          "client_id": "826536457643-ln0duvrsem4mdf7i6t1qglfjmuajncmt.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.mengaji.gecckocreator",
-            "certificate_hash": "f8ff17c0ee6b3c89960a33d06d02528c49c28cc9"
-          }
-        },
-        {
-          "client_id": "826536457643-hbvomi9rapkqjjtam2ejru5hdbqurt3m.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
-      "api_key": [
-        {
-          "current_key": "AIzaSyBzMv5jdKNlWVvqK5pJYD3Z9hWK6vgQvfM"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "826536457643-hbvomi9rapkqjjtam2ejru5hdbqurt3m.apps.googleusercontent.com",
-              "client_type": 3
-            }
-          ]
-        }
-      }
-    }
-  ],
-  "configuration_version": "1"
-}
-EOF
+            echo "ewogICJwcm9qZWN0X2luZm8iOiB7CiAgICAicHJvamVjdF9udW1iZXIiOiAiODI2NTM2NDU3NjQzIiwKICAgICJwcm9qZWN0X2lkIjogImdlbi1sYW5nLWNsaWVudC0wMTQzODI1OTgxIiwKICAgICJzdG9yYWdlX2J1Y2tldCI6ICJnZW4tbGFuZy1jbGllbnQtMDE0MzgyNTk4MS5maXJlYmFzZXN0b3JhZ2UuYXBwIgogIH0sCiAgImNsaWVudCI6IFsKICAgIHsKICAgICAgImNsaWVudF9pbmZvIjogewogICAgICAgICJtb2JpbGVzZGtfYXBwX2lkIjogIjE6ODI2NTM2NDU3NjQzOmFuZHJvaWQ6MmM2MjY2ZTU4NDgxYTI4NWY5NGVlZSIsCiAgICAgICAgImFuZHJvaWRfY2xpZW50X2luZm8iOiB7CiAgICAgICAgICAicGFja2FnZV9uYW1lIjogImNvbS5tZW5nYWppLmdlY2Nrb2NyZWF0b3IiCiAgICAgICAgfQogICAgICB9LAogICAgICAib2F1dGhfY2xpZW50IjogWwogICAgICAgIHsKICAgICAgICAgICJjbGllbnRfaWQiOiAiODI2NTM2NDU3NjQzLWxuMGR1dnJzZW00bWRmN2k2dDFxZ2xmam11YWpuY210LmFwcHMuZ29vZ2xldXNlcmNvbnRlbnQuY29tIiwKICAgICAgICAgICJjbGllbnRfdHlwZSI6IDEsCiAgICAgICAgICAiYW5kcm9pZF9pbmZvIjogewogICAgICAgICAgICAicGFja2FnZV9uYW1lIjogImNvbS5tZW5nYWppLmdlY2Nrb2NyZWF0b3IiLAogICAgICAgICAgICAiY2VydGlmaWNhdGVfaGFzaCI6ICJmOGZmMTdjMGVlNmIzYzg5OTYwYTMzZDA2ZDAyNTI4YzQ5YzI4Y2M5IgogICAgICAgICAgfQogICAgICAgIH0sCiAgICAgICAgewogICAgICAgICAgImNsaWVudF9pZCI6ICI4MjY1MzY0NTc2NDMtaGJ2b21pOXJhcGtxamp0YW0yZWpydTVoZGJxdXJ0M20uYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLAogICAgICAgICAgImNsaWVudF90eXBlIjogMwogICAgICAgIH0KICAgICAgXSwKICAgICAgImFwaV9rZXkiOiBbCiAgICAgICAgewogICAgICAgICAgImN1cnJlbnRfa2V5IjogIkFJemFTeUJ6TXY1amRLTmxXVnZxSzVwSllEM1o5aFdLNnZnUXZmTSIKICAgICAgICB9CiAgICAgIF0sCiAgICAgICJzZXJ2aWNlcyI6IHsKICAgICAgICAiYXBwaW52aXRlX3NlcnZpY2UiOiB7CiAgICAgICAgICAib3RoZXJfcGxhdGZvcm1fb2F1dGhfY2xpZW50IjogWwogICAgICAgICAgICB7CiAgICAgICAgICAgICAgImNsaWVudF9pZCI6ICI4MjY1MzY0NTc2NDMtaGJ2b21pOXJhcGtxamp0YW0yZWpydTVoZGJxdXJ0M20uYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLAogICAgICAgICAgICAgICJjbGllbnRfdHlwZSI6IDMKICAgICAgICAgICAgfQogICAgICAgICAgXQogICAgICAgIH0KICAgICAgfQogICAgfQogIF0sCiAgImNvbmZpZ3VyYXRpb25fdmVyc2lvbiI6ICIxIgp9" | base64 -d > app/google-services.json
           fi
 
           # 3. Ensure firebase_applet_config.xml exists
           mkdir -p app/src/main/res/values
           if [ ! -f app/src/main/res/values/firebase_applet_config.xml ]; then
-            cat << 'EOF' > app/src/main/res/values/firebase_applet_config.xml
-<?xml version="1.0" encoding="utf-8" standalone="no"?>
-<resources>
-    <string name="firestore_database_id" translatable="false">ai-studio-android-mengaj1-83a5a40f-1a14-4580-a733-83ffcd57e1c6</string>
-</resources>
-EOF
+            echo "PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiIHN0YW5kYWxvbmU9Im5vIj8+CjxyZXNvdXJjZXM+CiAgICA8c3RyaW5nIG5hbWU9ImZpcmVzdG9yZV9kYXRhYmFzZV9pZCIgdHJhbnNsYXRhYmxlPSJmYWxzZSI+YWktc3R1ZGlvLWFuZHJvaWQtbWVuZ2FqMS04M2E1YTQwZi0xYTE0LTQ1ODAtYTczMy04M2ZmY2Q1N2UxYzY8L3N0cmluZz4KPC9yZXNvdXJjZXM+" | base64 -d > app/src/main/res/values/firebase_applet_config.xml
           fi
 
           # 4. Restore release keystore (my-upload-key.jks) if missing
