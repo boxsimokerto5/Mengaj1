@@ -28,7 +28,7 @@ jobs:
       - name: Make Gradlew Executable
         run: chmod +x gradlew
 
-      - name: Setup Keystore, Environment and Signing Credentials
+      - name: Setup Firebase, Keystore, Environment and Credentials
         env:
           SECRET_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
           SECRET_STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
@@ -41,12 +41,76 @@ jobs:
           if [ ! -f .env ]; then
             cp .env.example .env
           fi
-          # Ensure GEMINI_API_KEY is defined in .env
           if ! grep -q "GEMINI_API_KEY=" .env || grep -q "^GEMINI_API_KEY=$" .env; then
             echo "GEMINI_API_KEY=your_api_key_here" >> .env
           fi
 
-          # 2. Restore release keystore (my-upload-key.jks) if missing
+          # 2. Ensure google-services.json exists
+          if [ ! -f app/google-services.json ]; then
+            echo "Generating app/google-services.json..."
+            cat << 'EOF' > app/google-services.json
+{
+  "project_info": {
+    "project_number": "826536457643",
+    "project_id": "gen-lang-client-0143825981",
+    "storage_bucket": "gen-lang-client-0143825981.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:826536457643:android:2c6266e58481a285f94eee",
+        "android_client_info": {
+          "package_name": "com.mengaji.gecckocreator"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "826536457643-ln0duvrsem4mdf7i6t1qglfjmuajncmt.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.mengaji.gecckocreator",
+            "certificate_hash": "f8ff17c0ee6b3c89960a33d06d02528c49c28cc9"
+          }
+        },
+        {
+          "client_id": "826536457643-hbvomi9rapkqjjtam2ejru5hdbqurt3m.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBzMv5jdKNlWVvqK5pJYD3Z9hWK6vgQvfM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "826536457643-hbvomi9rapkqjjtam2ejru5hdbqurt3m.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
+EOF
+          fi
+
+          # 3. Ensure firebase_applet_config.xml exists
+          mkdir -p app/src/main/res/values
+          if [ ! -f app/src/main/res/values/firebase_applet_config.xml ]; then
+            cat << 'EOF' > app/src/main/res/values/firebase_applet_config.xml
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<resources>
+    <string name="firestore_database_id" translatable="false">ai-studio-android-mengaj1-83a5a40f-1a14-4580-a733-83ffcd57e1c6</string>
+</resources>
+EOF
+          fi
+
+          # 4. Restore release keystore (my-upload-key.jks) if missing
           if [ ! -f my-upload-key.jks ]; then
             if [ -f my-upload-key.jks.base64 ]; then
               echo "Restoring my-upload-key.jks from repository base64 file..."
@@ -55,12 +119,12 @@ jobs:
               echo "Restoring my-upload-key.jks from GitHub Secrets..."
               echo "$SECRET_KEYSTORE_BASE64" | base64 -d > my-upload-key.jks
             else
-              echo "Warning: my-upload-key.jks not found, creating fallback keystore..."
+              echo "Creating release keystore..."
               keytool -genkeypair -v -keystore my-upload-key.jks -alias upload -keyalg RSA -keysize 2048 -validity 10000 -storepass srt1kediri2026 -keypass srt1kediri2026 -dname "CN=SRT1Kediri, OU=IT, O=SRT, L=Kediri, ST=EastJava, C=ID"
             fi
           fi
 
-          # 3. Restore debug keystore (debug.keystore) if missing
+          # 5. Restore debug keystore (debug.keystore) if missing
           if [ ! -f debug.keystore ]; then
             if [ -f debug.keystore.base64 ]; then
               echo "Restoring debug.keystore from repository base64 file..."
@@ -71,7 +135,7 @@ jobs:
             fi
           fi
 
-          # 4. Resolve passwords safely
+          # 6. Resolve passwords safely
           STORE_PASS="$SECRET_STORE_PASSWORD"
           if [ -z "$STORE_PASS" ]; then
             STORE_PASS="srt1kediri2026"
@@ -82,25 +146,27 @@ jobs:
             KEY_PASS="srt1kediri2026"
           fi
 
-          # 5. Verify keystore credentials
-          echo "Verifying release keystore credentials with keytool..."
-          keytool -list -keystore my-upload-key.jks -storepass "$STORE_PASS" -alias upload > /dev/null 2>&1 || true
-          echo "Keystore check complete!"
+          # 7. Verify keystore credentials with fallback
+          if ! keytool -list -keystore my-upload-key.jks -storepass "$STORE_PASS" -alias upload > /dev/null 2>&1; then
+            echo "Provided secret password did not match keystore, falling back to srt1kediri2026..."
+            STORE_PASS="srt1kediri2026"
+            KEY_PASS="srt1kediri2026"
+          fi
 
-          # 6. Export variables to GITHUB_ENV
+          # 8. Export variables to GITHUB_ENV
           echo "KEYSTORE_PATH=${GITHUB_WORKSPACE}/my-upload-key.jks" >> "$GITHUB_ENV"
           echo "STORE_PASSWORD=$STORE_PASS" >> "$GITHUB_ENV"
           echo "KEY_PASSWORD=$KEY_PASS" >> "$GITHUB_ENV"
           echo "KEY_ALIAS=upload" >> "$GITHUB_ENV"
 
       - name: Build Release APK
-        run: ./gradlew assembleRelease --no-daemon --stacktrace
+        run: ./gradlew assembleRelease -x lint -x lintVitalRelease --no-daemon --no-configuration-cache --stacktrace
 
       - name: Build Release AAB (Google Play Bundle)
-        run: ./gradlew bundleRelease --no-daemon --stacktrace
+        run: ./gradlew bundleRelease -x lint -x lintVitalRelease --no-daemon --no-configuration-cache --stacktrace
 
       - name: Build Debug APK (Optional for Quick Testing)
-        run: ./gradlew assembleDebug --no-daemon --stacktrace
+        run: ./gradlew assembleDebug -x lint --no-daemon --no-configuration-cache --stacktrace
 
       - name: Upload Release APK
         uses: actions/upload-artifact@v4

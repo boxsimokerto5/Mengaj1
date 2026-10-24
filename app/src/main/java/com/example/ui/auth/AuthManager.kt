@@ -23,6 +23,15 @@ import kotlinx.coroutines.tasks.await
 object AuthManager {
     private const val TAG = "AuthManager"
 
+    private fun getWebClientId(context: Context): String? {
+        val resId = context.resources.getIdentifier("default_web_client_id", "string", context.packageName)
+        if (resId != 0) {
+            val value = context.getString(resId)
+            if (value.isNotBlank()) return value
+        }
+        return null
+    }
+
     fun attemptAutoSignIn(
         context: Context,
         credentialManager: CredentialManager,
@@ -35,12 +44,7 @@ object AuthManager {
             return
         }
 
-        val clientId = try {
-            context.getString(R.string.default_web_client_id).takeIf { it.isNotBlank() } ?: run {
-                onUnauthenticated()
-                return
-            }
-        } catch (e: Exception) {
+        val clientId = getWebClientId(context) ?: run {
             onUnauthenticated()
             return
         }
@@ -81,13 +85,8 @@ object AuthManager {
         scope: CoroutineScope,
         onAuthCancelled: () -> Unit = {}
     ) {
-        val clientId = try {
-            context.getString(R.string.default_web_client_id).takeIf { it.isNotBlank() } ?: run {
-                onAuthError("Konfigurasi Google Sign-In belum tersedia (default_web_client_id belum disetel)")
-                return
-            }
-        } catch (e: Exception) {
-            onAuthError("Konfigurasi Google Sign-In belum tersedia (default_web_client_id tidak ditemukan)")
+        val clientId = getWebClientId(context) ?: run {
+            onAuthError("Konfigurasi Google Sign-In belum tersedia (google-services.json / default_web_client_id belum disetel)")
             return
         }
 
