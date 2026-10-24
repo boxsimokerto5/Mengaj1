@@ -50,6 +50,8 @@ import com.google.firebase.auth.auth
 @Composable
 fun MainAppScaffold(
     viewModel: NgajiViewModel,
+    currentUser: com.example.data.model.AppUser? = null,
+    onBackToAdmin: (() -> Unit)? = null,
     onSignOutRequest: () -> Unit
 ) {
     val activeTab by viewModel.activeTab.collectAsState()
@@ -57,8 +59,7 @@ fun MainAppScaffold(
     val snackbarHostState = remember { SnackbarHostState() }
     var showSignOutDialog by remember { mutableStateOf(false) }
 
-    val user = Firebase.auth.currentUser
-    val userEmail = user?.email ?: user?.displayName
+    val userDisplay = currentUser?.let { "${it.name} • ${it.jabatan}" } ?: "SRT 1 KEDIRI"
 
     // Show feedback messages
     LaunchedEffect(userMessage) {
@@ -71,6 +72,10 @@ fun MainAppScaffold(
     // Back handling: If on sub-tabs, return to SANTRI
     BackHandler(enabled = activeTab != MainTab.SANTRI) {
         viewModel.setActiveTab(MainTab.SANTRI)
+    }
+
+    BackHandler(enabled = activeTab == MainTab.SANTRI && onBackToAdmin != null) {
+        onBackToAdmin?.invoke()
     }
 
     Scaffold(
@@ -146,7 +151,7 @@ fun MainAppScaffold(
         ) {
             // Desert Oasis Header (Merchant with camels, oasis, date palms under blue sky)
             DesertOasisHeader(
-                userEmail = userEmail,
+                userEmail = userDisplay,
                 onSignOutClick = { showSignOutDialog = true }
             )
 
